@@ -19,18 +19,18 @@ set -eE
 # magic done there ala:
 # https://unix.stackexchange.com/questions/448323/trap-and-collect-script-output-input-file-is-output-file-error
 
-function err_report() {
-  echo "Error on line $(caller)" >&2
-  exec >&3 2>&3 3>&-
-  cat $LOG_FILE
-  cleanup_tmp
-}
-trap err_report ERR
+#function err_report() {
+#  echo "Error on line $(caller)" >&2
+#  exec >&3 2>&3 3>&-
+#  cat $LOG_FILE
+#  cleanup_tmp
+#}
+#trap err_report ERR
 
-function cleanup_tmp(){
-  rm -rf "$TMP_DIR"
-}
-trap cleanup_tmp EXIT
+#function cleanup_tmp(){
+#  rm -rf "$TMP_DIR"
+#}
+#trap cleanup_tmp EXIT
 
 ### help
 function show_help(){
@@ -61,7 +61,7 @@ function disable_swap(){
   {
     swapoff -a
     sed -i '/\sswap\s/ s/^\(.*\)$/#\1/g' /etc/fstab
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### remove packages
@@ -76,7 +76,7 @@ function remove_packages(){
     apt-get remove -y docker.io containerd kubelet kubeadm kubectl || true
     apt-get autoremove -y
     systemctl daemon-reload
-  } 3>&2 >> $LOG_FILE 2>&1 
+  }
 }
 
 ### install required packages
@@ -93,7 +93,7 @@ function install_packages(){
       software-properties-common \
       wget \
       jq
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### install kubernetes packages
@@ -117,7 +117,7 @@ EOF
       kubectl=${KUBE_VERSION}-*
     # Hold these packages at the installed version
     apt-mark hold kubelet kubeadm kubectl
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### set required sysctl params, these persist across reboots
@@ -136,7 +136,7 @@ EOF
     sudo modprobe overlay
     sudo modprobe br_netfilter
     sudo sysctl --system
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### crictl uses containerd as default
@@ -161,7 +161,7 @@ function install_containerd() {
   {
     apt-get update
     apt-get install -y containerd
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### configure containerd
@@ -214,7 +214,7 @@ function start_services(){
     systemctl enable containerd
     systemctl restart containerd
     systemctl enable kubelet && systemctl start kubelet
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### install calico as the CNI
@@ -232,7 +232,7 @@ function install_metrics_server(){
   {
     kubectl apply -f manifests/metrics-server.yaml
     # TODO: wait for metrics server to be ready
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### initialize the control plane
@@ -249,7 +249,7 @@ controlPlaneEndpoint: "localhost:6443"
 EOF
     # use config file for kubeadm
     kubeadm init --config kubeadm-config.yaml
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 
@@ -261,7 +261,7 @@ function wait_for_nodes(){
       --for=condition=Ready \
       --all nodes \
       --timeout=180s
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
   echo "==> Nodes are ready"
 }
 
@@ -277,7 +277,7 @@ function configure_kubeconfig(){
     cp -i /etc/kubernetes/admin.conf /root/.kube/config
     cp -i /etc/kubernetes/admin.conf /home/ubuntu/.kube/config || true
     chown ubuntu:ubuntu /home/ubuntu/.kube/config || true
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### check if worker services are running
@@ -288,7 +288,7 @@ function check_worker_services(){
   {
     echo "==> Checking containerd"
     systemctl is-active containerd
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### taint the node so that workloads can run on it, assuming there is only
@@ -302,7 +302,7 @@ function configure_as_single_node(){
       node-role.kubernetes.io/control-plane:NoSchedule-
     echo "==> Sleeping for 10 seconds to allow taint to take effect..."
     sleep 10 # wait for the taint to take effect
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### test if an nginx pod can be deployed to validate the cluster
@@ -319,7 +319,7 @@ function test_nginx_pod(){
       --timeout=180s
     # delete the nginx pod
     kubectl delete pod nginx --namespace default
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 function wait_for_pods_running() {
@@ -347,7 +347,7 @@ function wait_for_pods_running() {
       echo "Waiting for $not_running pods to be in Running state..."
       sleep 10
     done 
-  } 3>&2 >> $LOG_FILE 2>&1
+  }
 }
 
 ### doublecheck the kubernetes version that is installed
