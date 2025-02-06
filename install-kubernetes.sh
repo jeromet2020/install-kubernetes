@@ -167,7 +167,7 @@ function install_containerd() {
 ### configure containerd
 function configure_containerd(){
   echo "Configuring containerd"
-  sudo mkdir -p /etc/containerd 3>&2 >> $LOG_FILE 2>&1
+  sudo mkdir -p /etc/containerd
 ### config.toml
 cat > /etc/containerd/config.toml <<EOF
 disabled_plugins = []
@@ -223,7 +223,7 @@ function install_cni(){
   echo "Installing Calico CNI"
   for manifest in tigera-operator custom-resources; do
     echo "==> Installing Calico ${manifest}"
-    kubectl create -f ${CALICO_URL}/${manifest}.yaml 3>&2 >> $LOG_FILE 2>&1
+    kubectl create -f ${CALICO_URL}/${manifest}.yaml
   done
 }
 
